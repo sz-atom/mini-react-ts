@@ -1,0 +1,1 @@
+export function createFiber(element, container):any {}
