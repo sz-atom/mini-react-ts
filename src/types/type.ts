@@ -83,6 +83,10 @@ export interface MiniFiber<P extends Props = any> {
 
     deletions: MiniFiber[] | null,
 
-    tag: number | null
+    tag: number | null,
+
+    updateQueueOfEffect?: any[],
+
+    updateQueueOfLayout?: any[]
 
 }
