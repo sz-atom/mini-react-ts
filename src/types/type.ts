@@ -81,9 +81,9 @@ export interface MiniFiber<P extends Props = any> {
     // hook0
     memorizedState: any,
 
-    deletions: MiniFiber[] | null,
+    deletions: MiniFiber[],
 
-    tag: number | null,
+    tag?: number,
 
     updateQueueOfEffect?: any[],
 

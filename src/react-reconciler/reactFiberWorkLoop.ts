@@ -1,7 +1,8 @@
-import { MiniFiber } from '../types/type';
-import { scheduleCallback } from '../scheduler/scheduler';
+import { MiniFiber, Flags } from '../types/type';
+import { scheduleCallback, shouldYield } from '../scheduler/scheduler';
 import { FunctionComponent, ClassComponent, HostComponent, Fragment, HostText } from './reactWorkTags';
 import { updateFunctionComponent } from '../react-reconciler/reactFiberReconciler';
+import { insertOrAppendPlacementNode, updateNode, commitDeletions } from '../react-dom/dom';
 
 let wip, rootWIP;
 export function scheduleUpdateOnFiber(fiber: MiniFiber){
@@ -11,7 +12,7 @@ export function scheduleUpdateOnFiber(fiber: MiniFiber){
 
 function workLoopConcurrent () {
     // 深度遍历解析fiber节点
-    while(wip) {
+    while(wip && shouldYield()) {
         performUnitOfWork();
     }
     if (wip) return workLoopConcurrent;
@@ -60,7 +61,7 @@ function commitRoot() {
     wip = rootWIP = null;
 }
 
-function commitWork(fiber) {
+function commitWork(fiber:MiniFiber | null | undefined) {
     // 先自己 再子 再兄弟节点
     if (!fiber) return;
 
@@ -68,6 +69,23 @@ function commitWork(fiber) {
 
     let { flags, stateNode, tag } = fiber;
 
+    // placement
+
+    if (flags & Flags.Placement && stateNode) {
+        let before = getHostSibling(fiber.sibling);
+        insertOrAppendPlacementNode(parentNode, before, stateNode);
+    }
+
+    //update
+    if (flags & Flags.Update && stateNode) {
+        // 更新dom
+        updateNode(stateNode, fiber.alternate?.props, fiber?.props);
+    }
+
+    //delete
+    if (fiber.deletions.length > 0) {
+        commitDeletions(fiber.deletions, stateNode ?? parentNode);
+    }
 
     // dom操作完成后调用hooks
     if (tag == FunctionComponent) {
@@ -87,5 +105,23 @@ function getParentNode(fiber) {
 }
 
 function invokeHooks(fiber) {
-    
+    let { updateQueueOfEffect, updateQueueOfLayout } = fiber;
+    for(let i = 0; i < updateQueueOfLayout.length; i++) {
+        let effect = updateQueueOfLayout[i];
+        effect.create();
+    }
+    for(let i = 0; i < updateQueueOfEffect.length; i++) {
+        let effect = updateQueueOfEffect[i];
+        scheduleCallback(effect.create);
+    }
+}
+
+// 寻找第一个不需要交换位置的节点
+function getHostSibling (fiber) {
+    while (fiber) {
+        if (fiber.stateNode && !(fiber.flags & Flags.Placement)) {
+            return fiber.stateNode;
+        }
+        fiber = fiber.sibling;
+    }
 }

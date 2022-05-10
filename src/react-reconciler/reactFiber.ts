@@ -1,4 +1,6 @@
-import { MiniFiber, MiniElement, Flags } from '../types/type'
+import { MiniFiber, MiniElement, Flags } from '../types/type';
+import { isStr, isFunction, isUndefined } from '../util/utils';
+import { HostComponent, FunctionComponent, ClassComponent, HostText, Fragment } from '../react-reconciler/reactWorkTags';
 
 export function createFiber(vnode: MiniElement, returnFiber: any):MiniFiber {
     let fiber:MiniFiber = {
@@ -32,6 +34,22 @@ export function createFiber(vnode: MiniElement, returnFiber: any):MiniFiber {
         deletions: [],
 
         tag: null
+    }
+
+    // 根据vnode的type 确定fiber节点类型tag
+
+    let { type } = fiber;
+    if (isStr(type)) {
+        fiber.tag = HostComponent;
+    } else if (isFunction(type)) {
+        fiber.tag = type.prototype.isReactComponent ? ClassComponent : FunctionComponent;
+    } else if (isUndefined(type)) {
+        fiber.tag = HostText;
+        fiber.props = {
+            children: vnode
+        }
+    } else {
+        fiber.tag = Fragment;
     }
 
     return fiber;
