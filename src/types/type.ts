@@ -46,6 +46,12 @@ export enum Flags {
     Deletion = 0 << 3
 }
 
+export enum HooksFlags {
+    HookPassive = 0,
+
+    HookLayout = 0 << 1
+}
+
 export enum HookFlags {
 
     HookLayout = 0 << 1,
@@ -79,7 +85,7 @@ export interface MiniFiber<P extends Props = any> {
     alternate: defaultFiber,
 
     // hook0
-    memorizedState: any,
+    memoizedState: any,
 
     deletions: MiniFiber[],
 
@@ -89,4 +95,9 @@ export interface MiniFiber<P extends Props = any> {
 
     updateQueueOfLayout?: any[]
 
+}
+
+export interface hook{
+    memoizedState: any,
+    next: hook | null
 }
